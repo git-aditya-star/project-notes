@@ -15,15 +15,15 @@ session, and hooks make sure the notes stay current as the code changes.
 A full walkthrough — the idea, the architecture, the five hooks, the note
 format, and the design guarantees — is rendered as a standalone page:
 
-[![project-notes visual walkthrough](assets/preview.png)](https://git-aditya-star.github.io/note-taker/project-notes-explained.html)
+[![project-notes visual walkthrough](assets/preview.png)](https://git-aditya-star.github.io/project-notes/project-notes-explained.html)
 
-**[▶ Open the full visual walkthrough](https://git-aditya-star.github.io/note-taker/project-notes-explained.html)**
+**[▶ Open the full visual walkthrough](https://git-aditya-star.github.io/project-notes/project-notes-explained.html)**
 
 > Served via GitHub Pages — enable it once under **Settings → Pages** (source:
 > `main` branch, root folder) and the link goes live. Prefer no setup? The raw
 > file [`project-notes-explained.html`](project-notes-explained.html) is
 > self-contained — download it and open in any browser, or view it rendered via
-> [htmlpreview](https://htmlpreview.github.io/?https://github.com/git-aditya-star/note-taker/blob/main/project-notes-explained.html).
+> [htmlpreview](https://htmlpreview.github.io/?https://github.com/git-aditya-star/project-notes/blob/main/project-notes-explained.html).
 
 ## How it works
 
@@ -48,14 +48,14 @@ format, and the design guarantees — is rendered as a standalone page:
 ## Install
 
 ```
-/plugin marketplace add git-aditya-star/note-taker
-/plugin install project-notes@note-taker
+/plugin marketplace add git-aditya-star/project-notes
+/plugin install project-notes@project-notes
 ```
 
 To develop or try it locally without installing:
 
 ```
-claude --plugin-dir /path/to/note-taker
+claude --plugin-dir /path/to/project-notes
 ```
 
 The plugin registers its own hooks; you never hand-edit settings files.
