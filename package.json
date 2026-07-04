@@ -1,0 +1,12 @@
+{
+  "name": "project-notes",
+  "version": "0.1.0",
+  "description": "Claude Code plugin: a persistent, self-maintained notebook per project",
+  "private": true,
+  "scripts": {
+    "test": "node tests/run-all.js"
+  },
+  "engines": {
+    "node": ">=16.17.0"
+  }
+}

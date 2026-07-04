@@ -1,0 +1,18 @@
+{
+  "name": "note-taker",
+  "owner": {
+    "name": "aditya",
+    "email": "adichavan095@gmail.com"
+  },
+  "description": "Persistent per-project notebook plugins for Claude Code.",
+  "plugins": [
+    {
+      "name": "project-notes",
+      "source": "./",
+      "description": "Gives Claude a persistent, self-maintained notebook per project: distilled topic notes, a generated index injected at session start, and hooks that keep the notes current.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": ["notes", "memory", "context", "notebook", "persistence"]
+    }
+  ]
+}

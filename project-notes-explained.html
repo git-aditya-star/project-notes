@@ -1,0 +1,635 @@
+<title>project-notes — how it works</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --paper:   #f2f5f1;
+    --surface: #ffffff;
+    --surface-2: #f7faf7;
+    --ink:     #16211c;
+    --muted:   #566b62;
+    --faint:   #7c8d85;
+    --rule:    #dde4df;
+    --rule-2:  #e8ede9;
+    --accent:  #0d7057;   /* pine — the "ink" of the notebook */
+    --accent-soft: #0d70571a;
+    --warn:    #b06a1f;   /* amber — staleness / blocks */
+    --warn-soft: #b06a1f18;
+    --danger:  #b23b3b;
+    --code-bg: #f0f3ef;
+    --code-ink:#1d2a24;
+
+    --maxw: 1060px;
+    --spine: 720px;
+    --radius: 14px;
+    --radius-sm: 9px;
+
+    --sans: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --mono: "Cascadia Code", "Cascadia Mono", "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+    --shadow: 0 1px 2px #16211c0a, 0 6px 22px -12px #16211c1f;
+    --shadow-lg: 0 2px 4px #16211c0d, 0 18px 48px -20px #16211c2e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:   #0d1210;
+      --surface: #141b18;
+      --surface-2: #10171400;
+      --surface-2: #121917;
+      --ink:     #e6ece8;
+      --muted:   #97a89f;
+      --faint:   #75867d;
+      --rule:    #232c28;
+      --rule-2:  #1c2420;
+      --accent:  #43bd97;
+      --accent-soft: #43bd9718;
+      --warn:    #dca35c;
+      --warn-soft: #dca35c1a;
+      --danger:  #e07a7a;
+      --code-bg: #0f1613;
+      --code-ink:#cfe0d8;
+      --shadow: 0 1px 2px #00000040, 0 8px 26px -14px #00000080;
+      --shadow-lg: 0 2px 6px #00000050, 0 22px 54px -22px #000000a0;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper:#f2f5f1; --surface:#ffffff; --surface-2:#f7faf7; --ink:#16211c; --muted:#566b62;
+    --faint:#7c8d85; --rule:#dde4df; --rule-2:#e8ede9; --accent:#0d7057; --accent-soft:#0d70571a;
+    --warn:#b06a1f; --warn-soft:#b06a1f18; --danger:#b23b3b; --code-bg:#f0f3ef; --code-ink:#1d2a24;
+    --shadow: 0 1px 2px #16211c0a, 0 6px 22px -12px #16211c1f;
+    --shadow-lg: 0 2px 4px #16211c0d, 0 18px 48px -20px #16211c2e;
+  }
+  :root[data-theme="dark"] {
+    --paper:#0d1210; --surface:#141b18; --surface-2:#121917; --ink:#e6ece8; --muted:#97a89f;
+    --faint:#75867d; --rule:#232c28; --rule-2:#1c2420; --accent:#43bd97; --accent-soft:#43bd9718;
+    --warn:#dca35c; --warn-soft:#dca35c1a; --danger:#e07a7a; --code-bg:#0f1613; --code-ink:#cfe0d8;
+    --shadow: 0 1px 2px #00000040, 0 8px 26px -14px #00000080;
+    --shadow-lg: 0 2px 6px #00000050, 0 22px 54px -22px #000000a0;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* subtle ruled-margin texture behind the page — the "notebook" cue */
+  .bg {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(1200px 600px at 78% -8%, var(--accent-soft), transparent 60%);
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  .spine { max-width: var(--spine); }
+
+  /* ---------- type ---------- */
+  h1, h2, h3 { line-height: 1.15; text-wrap: balance; letter-spacing: -0.02em; margin: 0; }
+  h2 { font-size: clamp(1.5rem, 1.1rem + 1.7vw, 2.05rem); font-weight: 700; }
+  h3 { font-size: 1.12rem; font-weight: 650; letter-spacing: -0.01em; }
+  p { margin: 0 0 1em; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  strong { font-weight: 650; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    display: inline-flex; align-items: center; gap: 0.6em;
+  }
+  .eyebrow::before {
+    content: ""; width: 22px; height: 2px; background: var(--accent); border-radius: 2px; opacity: .7;
+  }
+
+  code, kbd, .mono { font-family: var(--mono); }
+  p code, li code, td code {
+    font-size: 0.86em;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 0.12em 0.4em;
+    border-radius: 5px;
+    border: 1px solid var(--rule-2);
+    white-space: nowrap;
+  }
+
+  pre {
+    margin: 0;
+    background: var(--code-bg);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.83rem;
+    line-height: 1.6;
+    color: var(--code-ink);
+  }
+  pre code { background: none; border: 0; padding: 0; white-space: pre; font-size: inherit; color: inherit; }
+  .c-key { color: var(--accent); }
+  .c-mut { color: var(--faint); }
+  .c-warn { color: var(--warn); }
+
+  /* ---------- layout rhythm ---------- */
+  section { padding: 46px 0; border-top: 1px solid var(--rule); }
+  section:first-of-type { border-top: 0; }
+  .lede { font-size: 1.15rem; color: var(--muted); max-width: 62ch; }
+  .section-head { margin-bottom: 28px; }
+  .section-head h2 { margin-top: 10px; }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 68px 0 52px; border-top: 0; }
+  .hero h1 {
+    font-size: clamp(2.6rem, 1.7rem + 4.2vw, 4.4rem);
+    font-weight: 720;
+    margin: 18px 0 0;
+  }
+  .hero .tag { color: var(--accent); }
+  .hero-sub { font-size: clamp(1.1rem, 1rem + 0.7vw, 1.4rem); color: var(--muted); max-width: 40ch; margin: 20px 0 0; line-height: 1.5; }
+  .hero-sub b { color: var(--ink); font-weight: 600; }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;
+    margin-top: 44px; background: var(--rule); border: 1px solid var(--rule);
+    border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+  }
+  .stat { background: var(--surface); padding: 18px 16px; }
+  .stat .n { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .stat .l { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); margin-top: 3px; }
+  @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } .stat:last-child { grid-column: 1 / -1; } }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow);
+  }
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 860px) { .g2, .g3 { grid-template-columns: 1fr; } }
+
+  /* hook cards */
+  .hook { display: flex; flex-direction: column; gap: 10px; }
+  .hook .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .hook h3 { font-family: var(--mono); font-size: 0.98rem; letter-spacing: -0.01em; }
+  .pill {
+    font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 20px; font-weight: 600; white-space: nowrap;
+  }
+  .pill.enforce { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); }
+  .pill.silent  { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+  .hook p { margin: 0; font-size: 0.95rem; color: var(--muted); }
+  .hook .meta { font-family: var(--mono); font-size: 0.74rem; color: var(--faint); border-top: 1px dashed var(--rule); padding-top: 9px; }
+  .hook .meta b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- architecture diagram ---------- */
+  .arch { display: grid; gap: 14px; }
+  .layer {
+    border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface);
+    padding: 16px 18px; box-shadow: var(--shadow);
+  }
+  .layer .lh { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .layer .lh .name { font-family: var(--mono); font-weight: 650; color: var(--accent); font-size: 0.9rem; }
+  .layer .lh .desc { font-size: 0.86rem; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: var(--mono); font-size: 0.76rem; padding: 5px 10px; border-radius: 7px;
+    background: var(--surface-2); border: 1px solid var(--rule); color: var(--ink);
+  }
+  .chip b { color: var(--accent); font-weight: 600; }
+  .flowdown { text-align: center; color: var(--faint); font-family: var(--mono); font-size: 1.1rem; line-height: 1; }
+
+  /* ---------- timeline ---------- */
+  .timeline { display: grid; gap: 0; margin-top: 8px; }
+  .step { display: grid; grid-template-columns: 44px 1fr; gap: 18px; padding-bottom: 26px; position: relative; }
+  .step:not(:last-child)::before {
+    content: ""; position: absolute; left: 21px; top: 40px; bottom: -4px; width: 2px; background: var(--rule);
+  }
+  .step .dot {
+    width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+    background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow);
+    font-family: var(--mono); font-weight: 700; color: var(--accent); font-size: 0.95rem; z-index: 1;
+  }
+  .step .body h3 { margin-bottom: 4px; }
+  .step .body .k { font-family: var(--mono); font-size: 0.72rem; color: var(--faint); letter-spacing: 0.04em; text-transform: uppercase; }
+  .step .body p { margin: 6px 0 0; color: var(--muted); font-size: 0.96rem; }
+  .step.block .dot { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+
+  /* ---------- note demo ---------- */
+  .demo { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .demo { grid-template-columns: 1fr; } }
+  .notecard {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+    box-shadow: var(--shadow-lg); overflow: hidden;
+  }
+  .notecard .fname {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--muted);
+    padding: 10px 16px; border-bottom: 1px solid var(--rule); background: var(--surface-2);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .notecard .fname::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+  .notecard pre { border: 0; border-radius: 0; background: transparent; }
+  .arrow-note { display: flex; flex-direction: column; gap: 14px; }
+  .produces { font-family: var(--mono); font-size: 0.72rem; color: var(--faint); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  /* ---------- tables ---------- */
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: var(--radius); box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); background: var(--surface-2); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { white-space: nowrap; }
+  tbody tr { background: var(--surface); }
+
+  /* ---------- callout ---------- */
+  .note-box {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 14px 18px; margin: 4px 0;
+  }
+  .note-box.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .note-box p { margin: 0; font-size: 0.95rem; }
+  .note-box .h { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 600; display: block; margin-bottom: 4px; }
+  .note-box.warn .h { color: var(--warn); }
+
+  /* module list */
+  .mod { display: grid; grid-template-columns: 200px 1fr; gap: 6px 22px; padding: 16px 0; border-bottom: 1px solid var(--rule-2); }
+  .mod:last-child { border-bottom: 0; }
+  .mod .fn { font-family: var(--mono); font-weight: 600; color: var(--accent); font-size: 0.9rem; }
+  .mod .fn .sub { display: block; color: var(--faint); font-weight: 400; font-size: 0.76rem; margin-top: 3px; }
+  .mod .d { color: var(--muted); font-size: 0.96rem; }
+  .mod .d strong { color: var(--ink); }
+  @media (max-width: 720px) { .mod { grid-template-columns: 1fr; gap: 8px; } }
+
+  ul.clean { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+  ul.clean li { padding-left: 24px; position: relative; color: var(--muted); }
+  ul.clean li::before { content: ""; position: absolute; left: 4px; top: 10px; width: 7px; height: 7px; border-radius: 2px; background: var(--accent); }
+  ul.clean li b { color: var(--ink); font-weight: 600; }
+
+  footer { padding: 40px 0 60px; border-top: 1px solid var(--rule); color: var(--faint); font-size: 0.86rem; }
+  footer .mono { font-family: var(--mono); }
+
+  /* reveal animation */
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+</style>
+
+<div class="bg" aria-hidden="true"></div>
+
+<header class="hero wrap">
+  <span class="eyebrow">Claude Code plugin · v0.1.0</span>
+  <h1>project&#8288;-&#8288;<span class="tag">notes</span></h1>
+  <p class="hero-sub">Claude forgets everything when a session ends. This plugin gives it a <b>notebook that survives</b> — distilled notes it writes for its own future self, kept fresh by hooks, invisible to git.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="n">5</div><div class="l">Lifecycle hooks</div></div>
+    <div class="stat"><div class="n">5</div><div class="l">Pure lib modules</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">npm deps</div></div>
+    <div class="stat"><div class="n">88</div><div class="l">Tests passing</div></div>
+    <div class="stat"><div class="n">16+</div><div class="l">Node version</div></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- THE IDEA -->
+  <section class="reveal">
+    <div class="section-head spine">
+      <span class="eyebrow">The idea</span>
+      <h2>A notebook Claude keeps for itself</h2>
+    </div>
+    <div class="spine">
+      <p class="lede">Every Claude Code session starts from zero. What it learned last time — how a subsystem works, which files matter, the gotcha that cost an hour — evaporates when the context window closes.</p>
+      <p>project-notes fixes that with a simple loop: Claude keeps <strong>distilled topic notes</strong> in your project at <code>.project-notes/</code>. An <strong>index of them is injected into context at the start of every session</strong>, so Claude picks the few notes relevant to the task instead of re-reading the whole codebase. Hooks make sure the notes stay honest as the code changes.</p>
+      <div class="note-box">
+        <span class="h">The freedom principle</span>
+        <p>The hooks enforce <em>that</em> the notebook stays trustworthy — index integrity, freshness, backups. Everything about <em>what</em> it says — which topics exist, what goes in them — is Claude's own judgment, the way a person keeps notes of what will help them later. The notes are written for a future model to read, not for you.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section class="reveal">
+    <div class="section-head spine">
+      <span class="eyebrow">How it's built</span>
+      <h2>Three layers, one direction of dependency</h2>
+      <p class="lede">Pure logic at the bottom knows nothing about Claude Code. Thin hook adapters wire it to session events. A skill tells Claude the protocol.</p>
+    </div>
+
+    <div class="arch">
+      <div class="layer">
+        <div class="lh"><span class="name">skills/project-notes/SKILL.md</span><span class="desc">the protocol Claude follows — the contract, what to write, when</span></div>
+        <div class="chips"><span class="chip">one topic per file</span><span class="chip">distill, don't transcribe</span><span class="chip">prune &amp; merge freely</span></div>
+      </div>
+      <div class="flowdown" aria-hidden="true">▲ reads · ▼ triggers</div>
+      <div class="layer">
+        <div class="lh"><span class="name">hooks/</span><span class="desc">thin adapters — parse the event, call lib, emit the verdict</span></div>
+        <div class="chips">
+          <span class="chip"><b>session-start</b>.js</span>
+          <span class="chip"><b>pre-tool-use</b>.js</span>
+          <span class="chip"><b>post-tool-use</b>.js</span>
+          <span class="chip"><b>user-prompt-submit</b>.js</span>
+          <span class="chip"><b>stop</b>.js</span>
+        </div>
+      </div>
+      <div class="flowdown" aria-hidden="true">▼ calls pure functions</div>
+      <div class="layer">
+        <div class="lh"><span class="name">lib/</span><span class="desc">pure logic, zero deps, unit-tested in isolation</span></div>
+        <div class="chips">
+          <span class="chip"><b>notes</b>.js — format &amp; index</span>
+          <span class="chip"><b>match</b>.js — covers globs</span>
+          <span class="chip"><b>session-state</b>.js — per-turn memory</span>
+          <span class="chip"><b>backup</b>.js — version ring</span>
+          <span class="chip"><b>hook-io</b>.js — stdin/opt-out/errors</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="spine" style="margin-top:30px">
+      <h3 style="margin-bottom:12px">Where everything lives on disk</h3>
+      <pre><code><span class="c-key">.project-notes/</span>              <span class="c-mut"># at your project root; created on session start</span>
+├── auth-flow.md          <span class="c-mut"># a topic note (frontmatter + distilled prose)</span>
+├── build-and-test.md     <span class="c-mut"># another topic — one file per subsystem/concept</span>
+├── INDEX.md              <span class="c-mut"># generated from every note's frontmatter; never hand-edited</span>
+├── <span class="c-mut">.state/</span>               <span class="c-mut"># per-turn scratch, one JSON per session (pruned after 7 days)</span>
+└── <span class="c-mut">.backups/</span>             <span class="c-mut"># bounded ring of prior note versions (5 per topic)</span></code></pre>
+      <p style="margin-top:14px; font-size:0.95rem; color:var(--muted)">The dot-prefixed <code>.state/</code> and <code>.backups/</code> are runtime plumbing — the index generator ignores anything starting with a dot, so only real topic notes ever get indexed.</p>
+    </div>
+  </section>
+
+  <!-- THE FIVE HOOKS -->
+  <section class="reveal">
+    <div class="section-head spine">
+      <span class="eyebrow">The engine</span>
+      <h2>Five hooks, each with one job</h2>
+      <p class="lede">Claude Code fires events across a session's life. Each hook is a small Node script: JSON event on stdin → a verdict (or nothing) on stdout. Errors go to stderr and exit non-zero, so a bug never breaks your session.</p>
+    </div>
+
+    <div class="grid g2">
+      <div class="card hook">
+        <div class="top"><h3>session-start</h3><span class="pill silent">bootstrap</span></div>
+        <p>Creates <code>.project-notes/</code>, hides it from git, prunes stale state, regenerates the index, and injects the notebook protocol + current index into Claude's context.</p>
+        <div class="meta">fires: <b>SessionStart</b> · matcher: <b>all</b></div>
+      </div>
+
+      <div class="card hook">
+        <div class="top"><h3>user-prompt-submit</h3><span class="pill silent">reset</span></div>
+        <p>A new prompt begins a new turn. Wipes the per-turn state so edits from the last turn don't leak into this turn's freshness check.</p>
+        <div class="meta">fires: <b>UserPromptSubmit</b> · matcher: <b>all</b></div>
+      </div>
+
+      <div class="card hook">
+        <div class="top"><h3>pre-tool-use</h3><span class="pill silent">backup</span></div>
+        <p>Just before a note file is overwritten, snapshots its <em>current</em> content into the backup ring. A brand-new note has nothing to save, so it's skipped naturally.</p>
+        <div class="meta">fires: <b>PreToolUse</b> · matcher: <b>Edit|Write|MultiEdit|NotebookEdit</b></div>
+      </div>
+
+      <div class="card hook">
+        <div class="top"><h3>post-tool-use</h3><span class="pill silent">record + index</span></div>
+        <p>After every edit or exploration: stamps <code>updated:</code> on written notes, regenerates <code>INDEX.md</code>, and records what happened this turn — code edits, note writes, exploration count.</p>
+        <div class="meta">fires: <b>PostToolUse</b> · matcher: <b>…Edit|Write|Read|Grep|Glob</b></div>
+      </div>
+
+      <div class="card hook" style="grid-column:1/-1">
+        <div class="top"><h3>stop</h3><span class="pill enforce">the freshness guarantee</span></div>
+        <p>When Claude tries to finish a turn, this hook is the enforcer. If the turn edited code covered by topic notes that <em>weren't</em> refreshed, it <strong>blocks once</strong> and names exactly the stale topics. If the turn was heavy exploration with nothing written down, it issues a single <strong>declinable nudge</strong>. Everything else passes silently. It never loops — a <code>stop_hook_active</code> flag means it blocks at most once per turn.</p>
+        <div class="meta">fires: <b>Stop</b> · matcher: <b>all</b> · threshold: <b>5</b> exploration tools</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIFECYCLE -->
+  <section class="reveal">
+    <div class="section-head spine">
+      <span class="eyebrow">A turn, start to finish</span>
+      <h2>How the hooks cooperate across one turn</h2>
+      <p class="lede">The hooks don't act alone — they pass a small per-turn state file to each other, written by post-tool-use and read by stop. Here's the whole handoff.</p>
+    </div>
+
+    <div class="timeline spine">
+      <div class="step">
+        <div class="dot">1</div>
+        <div class="body">
+          <span class="k">SessionStart · once per session</span>
+          <h3>The notebook wakes up</h3>
+          <p>Directory ensured, git-exclusion applied, old state pruned, index rebuilt and injected. Claude begins the session already knowing what past sessions learned.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="dot">2</div>
+        <div class="body">
+          <span class="k">UserPromptSubmit · you send a message</span>
+          <h3>A fresh turn starts</h3>
+          <p>The per-turn state is reset to empty: <code>{ codeEdits: [], noteWrites: [], explorationCount: 0 }</code>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="dot">3</div>
+        <div class="body">
+          <span class="k">PostToolUse · every tool Claude runs</span>
+          <h3>The turn is recorded as it happens</h3>
+          <p>Read/Grep/Glob bump the exploration count. Editing a code file records the path. Writing a note stamps its timestamp, rebuilds the index, and marks that topic as freshened.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="dot">4</div>
+        <div class="body">
+          <span class="k">PreToolUse · right before each note overwrite</span>
+          <h3>The old version is preserved</h3>
+          <p>Because notes are excluded from git, an in-place rewrite would otherwise be unrecoverable. The prior content is copied into the backup ring first.</p>
+        </div>
+      </div>
+      <div class="step block">
+        <div class="dot">5</div>
+        <div class="body">
+          <span class="k">Stop · Claude tries to end the turn</span>
+          <h3>The freshness check runs</h3>
+          <p>It reads the turn's state and every note's <code>covers:</code>. Edited a covered file but didn't refresh its note? <b>Blocked</b>, with the exact stale topics named. Explored a lot and wrote nothing? A single, <b>declinable nudge</b>. Otherwise the turn ends cleanly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NOTE FORMAT -->
+  <section class="reveal">
+    <div class="section-head spine">
+      <span class="eyebrow">The note format</span>
+      <h2>One topic, one file, a tiny contract</h2>
+      <p class="lede">The only mechanical rule is the YAML frontmatter — the hooks rely on it. The prose below it is free-form distilled understanding: how a thing works, why, the non-obvious gotchas, and <code>file:line</code> pointers instead of pasted code.</p>
+    </div>
+
+    <div class="demo">
+      <div class="notecard">
+        <div class="fname">.project-notes/auth-flow.md</div>
+        <pre><code><span class="c-mut">---</span>
+<span class="c-key">summary:</span> How a request is authenticated and where sessions live.
+<span class="c-key">covers:</span> [src/auth/, middleware/session.ts]
+<span class="c-key">updated:</span> <span class="c-mut">2026-07-04T09:12:00Z  # stamped automatically</span>
+<span class="c-mut">---</span>
+
+Entry point: `middleware/session.ts:20` reads the `sid`
+cookie and loads the session via `src/auth/store.ts:44`.
+Public routes are the allow-list in `routes.ts:8`.
+
+<span class="c-warn">Gotcha:</span> tokens are validated but NOT refreshed here;
+refresh is a separate cron. An expired-but-present
+token still 401s — surprised me, cost an hour.</code></pre>
+      </div>
+
+      <div class="arrow-note">
+        <div class="note-box">
+          <span class="h">summary:</span>
+          <p style="color:var(--muted)">One line. Becomes this topic's line in the generated index.</p>
+        </div>
+        <div class="note-box">
+          <span class="h">covers:</span>
+          <p style="color:var(--muted)">Code paths this note explains. When Claude edits code under one of these, the Stop hook requires the note to be refreshed.</p>
+        </div>
+        <div class="note-box warn">
+          <span class="h">updated:</span>
+          <p style="color:var(--muted)">Never written by hand — post-tool-use stamps it. Hand-editing <code>INDEX.md</code> is likewise pointless; it's regenerated.</p>
+        </div>
+        <div>
+          <div class="produces" style="margin-bottom:8px">↓ generates one index line</div>
+          <pre><code>- auth-flow — How a request is
+  authenticated… [covers: src/auth/,
+  middleware/session.ts] (updated: …)</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="spine" style="margin-top:32px">
+      <h3 style="margin-bottom:14px">How <code>covers:</code> matches an edited file</h3>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Pattern form</th><th>Example</th><th>Matches</th></tr></thead>
+        <tbody>
+          <tr><td>Directory prefix</td><td><code>src/auth/</code></td><td>any file whose path starts with <code>src/auth/</code></td></tr>
+          <tr><td>Exact file</td><td><code>middleware/session.ts</code></td><td>that one file, exactly</td></tr>
+          <tr><td>Single-segment glob</td><td><code>src/*.ts</code></td><td><code>*</code> matches within one path segment (no <code>/</code>)</td></tr>
+          <tr><td>Cross-segment glob</td><td><code>src/**/*.ts</code></td><td><code>**</code> crosses directories; <code>**/</code> matches zero or more segments</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- LIB CORE -->
+  <section class="reveal">
+    <div class="section-head spine">
+      <span class="eyebrow">The core</span>
+      <h2>Inside <span class="mono" style="font-size:0.8em">lib/</span></h2>
+      <p class="lede">All the real logic lives here as pure functions — no session knowledge, so it's tested directly against temp directories. The hooks are just thin wiring on top.</p>
+    </div>
+
+    <div class="spine">
+      <div class="mod">
+        <div class="fn">notes.js<span class="sub">the note format</span></div>
+        <div class="d">Parses the tolerant YAML subset (<code>summary</code>, <code>covers</code>, <code>updated</code> — inline <em>and</em> block lists, BOM-safe), upserts the <strong>updated:</strong> stamp while preserving line endings, and renders <strong>INDEX.md</strong> from every note's frontmatter. Also owns the shared constants: <code>.project-notes</code>, <code>INDEX.md</code>, the write-tool list.</div>
+      </div>
+      <div class="mod">
+        <div class="fn">match.js<span class="sub">covers globs</span></div>
+        <div class="d">Translates a <code>covers:</code> pattern to a regex char-by-char (handling <code>*</code>, <code>**</code>, <code>**/</code> and directory prefixes), then <strong>classifyEdits</strong> maps this turn's edited paths onto topics — returning which notes are <strong>stale</strong> and which edits are covered by <strong>no topic</strong> at all.</div>
+      </div>
+      <div class="mod">
+        <div class="fn">session-state.js<span class="sub">per-turn memory</span></div>
+        <div class="d">The bridge from post-tool-use to stop. One JSON file per session under <code>.state/</code>, written atomically (temp-then-rename). Tracks <code>codeEdits</code>, <code>noteWrites</code>, <code>explorationCount</code>; resets each turn and <strong>prunes files older than 7 days</strong>.</div>
+      </div>
+      <div class="mod">
+        <div class="fn">backup.js<span class="sub">version ring</span></div>
+        <div class="d">Because notes are outside git, a bad rewrite is otherwise gone. Keeps a <strong>bounded ring of the 5 most recent versions</strong> per topic under <code>.backups/&lt;topic&gt;/</code>, pruning the oldest past the limit.</div>
+      </div>
+      <div class="mod">
+        <div class="fn">hook-io.js<span class="sub">the safety contract</span></div>
+        <div class="d">Shared plumbing every hook runs through: read &amp; parse the stdin event, honor the <strong>opt-out</strong> marker, and wrap <code>main</code> so any error goes to stderr with exit 1 — <strong>never a throw that breaks the session</strong>.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GUARANTEES -->
+  <section class="reveal">
+    <div class="section-head spine">
+      <span class="eyebrow">What it promises</span>
+      <h2>Design guarantees</h2>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="color:var(--accent); margin-bottom:8px">Invisible to git — without <code style="white-space:normal">.gitignore</code></h3>
+        <p style="color:var(--muted); margin:0">The notes are added to <code>.git/info/exclude</code>, the local-only ignore file. Teammates, diffs, and commits never see them, and your <code>.gitignore</code> stays untouched. Works in plain repos, linked worktrees, and non-git folders alike.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--accent); margin-bottom:8px">Never breaks your session</h3>
+        <p style="color:var(--muted); margin:0">Every hook is wrapped so a failure exits non-zero to stderr and is ignored by Claude Code. A bug in the plugin can degrade note-keeping — it can't stop you working.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--accent); margin-bottom:8px">Notes never expire</h3>
+        <p style="color:var(--muted); margin:0">The 7-day pruner only touches throwaway <code>.state/</code> scratch. Topic notes and the index are never aged out — they persist until Claude deliberately edits or deletes them.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--accent); margin-bottom:8px">One-file opt-out</h3>
+        <p style="color:var(--muted); margin:0">Drop a <code>.project-notes-off</code> file at the project root and every hook becomes a no-op — no directory, no injection, no tracking, no blocks. Delete it to re-enable.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTS & PACKAGING -->
+  <section class="reveal">
+    <div class="section-head spine">
+      <span class="eyebrow">Correctness &amp; distribution</span>
+      <h2>Tested at two seams, shipped as a marketplace</h2>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="margin-bottom:10px">88 tests, two seams</h3>
+        <ul class="clean" style="font-size:0.95rem">
+          <li><b>Pure-function units</b> — <code>lib/</code> logic tested directly against temp dirs.</li>
+          <li><b>Hook-process boundary</b> — real Node processes spawned with real event JSON, no mocks.</li>
+          <li>Zero dependencies to install — the runner uses Node's built-in <code>node:test</code>.</li>
+        </ul>
+        <pre style="margin-top:14px"><code>node tests/run-all.js   <span class="c-mut"># 10 files · 88 tests · green</span></code></pre>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:10px">Install from the marketplace</h3>
+        <p style="color:var(--muted); margin:0 0 12px; font-size:0.95rem">The repo doubles as its own single-plugin marketplace via <code>.claude-plugin/marketplace.json</code>.</p>
+        <pre><code><span class="c-mut">/plugin</span> marketplace add <span class="c-key">&lt;user&gt;/note-taker</span>
+<span class="c-mut">/plugin</span> install <span class="c-key">project-notes@note-taker</span></code></pre>
+        <p style="color:var(--muted); margin:12px 0 0; font-size:0.9rem">Or try it locally with no install: <code>claude --plugin-dir .</code></p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <p class="mono">project-notes · v0.1.0 · MIT · zero dependencies · Node ≥ 16.17</p>
+  <p style="margin:0">A persistent, self-maintained notebook for Claude Code — so each session starts already knowing what the last one learned.</p>
+</footer>
+
+<script>
+  (function () {
+    var els = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      els.forEach(function (e) { e.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    els.forEach(function (e) { io.observe(e); });
+  })();
+</script>
