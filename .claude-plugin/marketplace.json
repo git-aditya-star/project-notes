@@ -9,7 +9,7 @@
     {
       "name": "project-notes",
       "source": "./",
-      "description": "Gives Claude a persistent, self-maintained notebook per project: distilled topic notes, a generated index injected at session start, and hooks that keep the notes current.",
+      "description": "Gives Claude a persistent, self-maintained notebook per project: distilled topic notes, a generated index injected into context each turn, and hooks that keep the notes current.",
       "version": "0.1.0",
       "license": "MIT",
       "keywords": ["notes", "memory", "context", "notebook", "persistence"]

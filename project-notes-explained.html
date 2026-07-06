@@ -313,7 +313,7 @@
     </div>
     <div class="spine">
       <p class="lede">Every Claude Code session starts from zero. What it learned last time — how a subsystem works, which files matter, the gotcha that cost an hour — evaporates when the context window closes.</p>
-      <p>project-notes fixes that with a simple loop: Claude keeps <strong>distilled topic notes</strong> in your project at <code>.project-notes/</code>. An <strong>index of them is injected into context at the start of every session</strong>, so Claude picks the few notes relevant to the task instead of re-reading the whole codebase. Hooks make sure the notes stay honest as the code changes.</p>
+      <p>project-notes fixes that with a simple loop: Claude keeps <strong>distilled topic notes</strong> in your project at <code>.project-notes/</code>. An <strong>index of them is injected into context at the start of every session and refreshed on every prompt</strong>, so Claude picks the few notes relevant to the task instead of re-reading the whole codebase. Hooks make sure the notes stay honest as the code changes.</p>
       <div class="note-box">
         <span class="h">The freedom principle</span>
         <p>The hooks enforce <em>that</em> the notebook stays trustworthy — index integrity, freshness, backups. Everything about <em>what</em> it says — which topics exist, what goes in them — is Claude's own judgment, the way a person keeps notes of what will help them later. The notes are written for a future model to read, not for you.</p>
@@ -386,8 +386,8 @@
       </div>
 
       <div class="card hook">
-        <div class="top"><h3>user-prompt-submit</h3><span class="pill silent">reset</span></div>
-        <p>A new prompt begins a new turn. Wipes the per-turn state so edits from the last turn don't leak into this turn's freshness check.</p>
+        <div class="top"><h3>user-prompt-submit</h3><span class="pill silent">reset + index</span></div>
+        <p>A new prompt begins a new turn. Wipes the per-turn state so edits from the last turn don't leak into this turn's freshness check, then re-injects the freshly regenerated index (skipped when the notebook is empty) so every message sees notes written earlier this session.</p>
         <div class="meta">fires: <b>UserPromptSubmit</b> · matcher: <b>all</b></div>
       </div>
 
@@ -433,7 +433,7 @@
         <div class="body">
           <span class="k">UserPromptSubmit · you send a message</span>
           <h3>A fresh turn starts</h3>
-          <p>The per-turn state is reset to empty: <code>{ codeEdits: [], noteWrites: [], explorationCount: 0 }</code>.</p>
+          <p>The per-turn state is reset to empty: <code>{ codeEdits: [], noteWrites: [], explorationCount: 0 }</code>. Then the index is regenerated and re-injected into context (unless the notebook is empty), so this turn sees any notes written earlier in the session.</p>
         </div>
       </div>
       <div class="step">

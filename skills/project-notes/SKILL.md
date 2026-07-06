@@ -81,5 +81,7 @@ living map, not an append log.
 
 ## Reading
 
-At session start the index is injected into your context. Read the topic notes
-relevant to your task before diving in — that's the whole point of keeping them.
+The index is injected into your context at session start and re-injected on
+every user prompt, so it always reflects notes written earlier this session.
+The index carries only summaries — Read the topic notes relevant to your task
+before diving in; that's the whole point of keeping them.

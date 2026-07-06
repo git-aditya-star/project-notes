@@ -8,7 +8,8 @@ Claude Code sessions are amnesiac: knowledge earned in one session (how a
 subsystem works, which files matter, why a decision was made) vanishes when the
 context window closes. `project-notes` fixes that. Claude keeps distilled topic
 notes in your project, an index of them is injected at the start of every
-session, and hooks make sure the notes stay current as the code changes.
+session and refreshed on every prompt, and hooks make sure the notes stay
+current as the code changes.
 
 ## Visual overview
 
@@ -34,7 +35,8 @@ format, and the design guarantees — is rendered as a standalone page:
 - **One topic per file**, each with YAML frontmatter (`summary:`, `covers:`, and
   an auto-stamped `updated:`) plus distilled, pointer-rich understanding.
 - **`INDEX.md` is generated** from the notes' frontmatter and injected into
-  every session's context. Claude reads only the notes it needs.
+  context at the start of every session and refreshed on every prompt — so it
+  reflects notes written mid-session. Claude reads only the notes it needs.
 - **Hooks enforce freshness.** Edit code that a topic covers, and the Stop hook
   won't let the turn end until you refresh that note. Explore heavily without
   writing anything down, and it gives a single, declinable nudge.
